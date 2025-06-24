@@ -1,351 +1,307 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Plus, Eye, Edit, Trash2, Zap, Play, Pause, BarChart3, Settings } from "lucide-react"
-import SidebarNavigation from "@/components/SidebarNavigation"
+import { Plus, Play, Pause, Edit, Trash2, Users, Mail, Calendar, Target, ArrowRight } from "lucide-react"
 
 export default function WorkflowsPage() {
   const [workflows, setWorkflows] = useState([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [triggerFilter, setTriggerFilter] = useState("all")
+  const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [showBuilder, setShowBuilder] = useState(false)
   const [selectedWorkflow, setSelectedWorkflow] = useState(null)
-
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    triggerType: "prospect_created",
-    status: "active",
-    conditions: {},
-    actions: [],
-  })
 
   useEffect(() => {
     loadWorkflows()
   }, [])
 
   const loadWorkflows = async () => {
+    setLoading(true)
     try {
+      // Simuler des données de workflows
       const mockWorkflows = [
         {
           id: 1,
-          name: "Accueil Nouveau Prospect",
-          description: "Workflow automatique pour nouveaux prospects",
-          trigger_type: "prospect_created",
+          name: "Suivi Nouveau Prospect",
+          description: "Workflow automatique pour les nouveaux prospects",
           status: "active",
-          execution_count: 156,
-          success_count: 142,
+          triggers: ["Nouveau prospect créé"],
+          actions: ["Envoyer email de bienvenue", "Assigner à commercial", "Créer tâche de suivi"],
+          prospects_count: 45,
+          conversion_rate: 23.5,
           created_at: "2024-01-15",
         },
         {
           id: 2,
-          name: "Relance Prospect Inactif",
-          description: "Relance automatique prospects sans activité",
-          trigger_type: "prospect_inactive",
+          name: "Relance Prospects Inactifs",
+          description: "Relance automatique des prospects sans activité",
           status: "active",
-          execution_count: 89,
-          success_count: 76,
-          created_at: "2024-02-01",
+          triggers: ["Pas d'activité depuis 7 jours"],
+          actions: ["Envoyer email de relance", "Créer tâche de rappel"],
+          prospects_count: 28,
+          conversion_rate: 15.2,
+          created_at: "2024-01-10",
         },
         {
           id: 3,
-          name: "Suivi Post-Signature",
-          description: "Actions automatiques après signature contrat",
-          trigger_type: "contract_signed",
-          status: "inactive",
-          execution_count: 23,
-          success_count: 23,
-          created_at: "2024-02-15",
+          name: "Onboarding Client",
+          description: "Processus d'accueil des nouveaux clients",
+          status: "draft",
+          triggers: ["Contrat signé"],
+          actions: ["Envoyer kit de bienvenue", "Planifier rendez-vous", "Créer dossier client"],
+          prospects_count: 0,
+          conversion_rate: 0,
+          created_at: "2024-01-20",
         },
       ]
       setWorkflows(mockWorkflows)
     } catch (error) {
-      console.error("Erreur chargement workflows:", error)
+      console.error("Erreur lors du chargement des workflows:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const filteredWorkflows = workflows.filter((workflow) => {
-    const matchesSearch =
-      workflow.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      workflow.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || workflow.status === statusFilter
-    const matchesTrigger = triggerFilter === "all" || workflow.trigger_type === triggerFilter
-    return matchesSearch && matchesStatus && matchesTrigger
-  })
+  const handleStatusToggle = (workflowId) => {
+    setWorkflows(
+      workflows.map((workflow) =>
+        workflow.id === workflowId
+          ? { ...workflow, status: workflow.status === "active" ? "paused" : "active" }
+          : workflow,
+      ),
+    )
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
       case "active":
         return "bg-green-100 text-green-800"
-      case "inactive":
-        return "bg-gray-100 text-gray-800"
-      case "draft":
+      case "paused":
         return "bg-yellow-100 text-yellow-800"
+      case "draft":
+        return "bg-gray-100 text-gray-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
   }
 
-  const getTriggerLabel = (trigger) => {
-    switch (trigger) {
-      case "prospect_created":
-        return "Nouveau prospect"
-      case "prospect_inactive":
-        return "Prospect inactif"
-      case "contract_signed":
-        return "Contrat signé"
-      case "date_anniversary":
-        return "Date anniversaire"
+  const getStatusText = (status) => {
+    switch (status) {
+      case "active":
+        return "Actif"
+      case "paused":
+        return "En pause"
+      case "draft":
+        return "Brouillon"
       default:
-        return trigger
+        return "Inconnu"
     }
   }
 
-  const calculateSuccessRate = (workflow) => {
-    if (workflow.execution_count === 0) return 0
-    return ((workflow.success_count / workflow.execution_count) * 100).toFixed(1)
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-32 bg-gray-200 rounded-xl"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
-
-  const totalWorkflows = workflows.length
-  const activeWorkflows = workflows.filter((w) => w.status === "active").length
-  const inactiveWorkflows = workflows.filter((w) => w.status === "inactive").length
-  const totalExecutions = workflows.reduce((sum, w) => sum + w.execution_count, 0)
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <SidebarNavigation currentPage="automatisation" />
+    <>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Workflows d'Automatisation</h1>
+            <p className="text-gray-600 mt-1">Automatisez vos processus de vente et de suivi</p>
+          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nouveau Workflow</span>
+          </button>
+        </div>
+      </div>
 
-      <main className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Workflows & Automatisation</h1>
-              <p className="text-gray-600 mt-1">Automatisez vos processus métier</p>
+      <div className="p-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Workflows</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{workflows.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <Target className="w-6 h-6 text-blue-600" />
+              </div>
             </div>
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-gradient-purple text-white px-6 py-3 rounded-xl font-medium hover:scale-105 transition-transform duration-200 shadow-lg flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Nouveau Workflow
-            </button>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Workflows Actifs</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {workflows.filter((w) => w.status === "active").length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <Play className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Prospects Traités</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {workflows.reduce((sum, w) => sum + w.prospects_count, 0)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Taux Conversion Moyen</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {workflows.length > 0
+                    ? (workflows.reduce((sum, w) => sum + w.conversion_rate, 0) / workflows.length).toFixed(1)
+                    : 0}
+                  %
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                <ArrowRight className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="p-6">
-          {/* KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="kpi-card p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Workflows</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{totalWorkflows}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-blue rounded-xl flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </div>
-
-            <div className="kpi-card p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Actifs</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{activeWorkflows}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-green rounded-xl flex items-center justify-center">
-                  <Play className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </div>
-
-            <div className="kpi-card p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Inactifs</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{inactiveWorkflows}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-orange rounded-xl flex items-center justify-center">
-                  <Pause className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </div>
-
-            <div className="kpi-card p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Exécutions</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{totalExecutions}</p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-purple rounded-xl flex items-center justify-center">
-                  <BarChart3 className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </div>
+        {/* Workflows List */}
+        <div className="bg-white rounded-xl shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Mes Workflows</h2>
           </div>
+          <div className="divide-y divide-gray-200">
+            {workflows.map((workflow) => (
+              <div key={workflow.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">{workflow.name}</h3>
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(workflow.status)}`}
+                      >
+                        {getStatusText(workflow.status)}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 mb-3">{workflow.description}</p>
 
-          {/* Filtres */}
-          <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Rechercher un workflow..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="active">Actif</option>
-                <option value="inactive">Inactif</option>
-                <option value="draft">Brouillon</option>
-              </select>
-
-              <select
-                value={triggerFilter}
-                onChange={(e) => setTriggerFilter(e.target.value)}
-                className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="all">Tous les déclencheurs</option>
-                <option value="prospect_created">Nouveau prospect</option>
-                <option value="prospect_inactive">Prospect inactif</option>
-                <option value="contract_signed">Contrat signé</option>
-                <option value="date_anniversary">Date anniversaire</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Liste des workflows */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      WORKFLOW
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      DÉCLENCHEUR
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      STATUT
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      EXÉCUTIONS
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      TAUX DE SUCCÈS
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ACTIONS
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredWorkflows.map((workflow) => (
-                    <tr key={workflow.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{workflow.name}</div>
-                          <div className="text-sm text-gray-500">{workflow.description}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {getTriggerLabel(workflow.trigger_type)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(workflow.status)}`}
-                        >
-                          {workflow.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{workflow.execution_count}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
-                            <div
-                              className="bg-green-500 h-2 rounded-full"
-                              style={{ width: `${calculateSuccessRate(workflow)}%` }}
-                            />
-                          </div>
-                          <span className="text-sm font-medium text-gray-900">{calculateSuccessRate(workflow)}%</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => setShowBuilder(true)}
-                            className="text-purple-600 hover:text-purple-900 p-1"
+                    {/* Triggers */}
+                    <div className="mb-3">
+                      <h4 className="text-sm font-medium text-gray-700 mb-1">Déclencheurs:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {workflow.triggers.map((trigger, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full flex items-center"
                           >
-                            <Settings className="w-4 h-4" />
-                          </button>
-                          <button className="text-blue-600 hover:text-blue-900 p-1">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button className="text-green-600 hover:text-green-900 p-1">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button className="text-red-600 hover:text-red-900 p-1">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {trigger}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
 
-        {/* Modal Éditeur Visuel */}
-        {showBuilder && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-gray-900">Éditeur Visuel de Workflow</h2>
-                <button onClick={() => setShowBuilder(false)} className="text-gray-400 hover:text-gray-600">
-                  ✕
-                </button>
-              </div>
+                    {/* Actions */}
+                    <div className="mb-3">
+                      <h4 className="text-sm font-medium text-gray-700 mb-1">Actions:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {workflow.actions.map((action, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full flex items-center"
+                          >
+                            <Mail className="w-3 h-3 mr-1" />
+                            {action}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
 
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-                <div className="text-center py-12">
-                  <Zap className="w-16 h-16 text-purple-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Éditeur Visuel</h3>
-                  <p className="text-gray-600 mb-6">
-                    L'éditeur visuel de workflow sera disponible dans une prochaine version.
-                  </p>
-                  <div className="bg-gray-50 rounded-lg p-6 max-w-md mx-auto">
-                    <h4 className="font-medium text-gray-900 mb-3">Fonctionnalités prévues :</h4>
-                    <ul className="text-sm text-gray-600 space-y-2 text-left">
-                      <li>• Interface glisser-déposer</li>
-                      <li>• Conditions visuelles</li>
-                      <li>• Actions configurables</li>
-                      <li>• Test en temps réel</li>
-                      <li>• Historique des exécutions</li>
-                    </ul>
+                    {/* Stats */}
+                    <div className="flex items-center space-x-6 text-sm text-gray-500">
+                      <span>{workflow.prospects_count} prospects traités</span>
+                      <span>{workflow.conversion_rate}% de conversion</span>
+                      <span>Créé le {new Date(workflow.created_at).toLocaleDateString("fr-FR")}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 ml-4">
+                    <button
+                      onClick={() => handleStatusToggle(workflow.id)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        workflow.status === "active"
+                          ? "bg-yellow-100 text-yellow-600 hover:bg-yellow-200"
+                          : "bg-green-100 text-green-600 hover:bg-green-200"
+                      }`}
+                      title={workflow.status === "active" ? "Mettre en pause" : "Activer"}
+                    >
+                      {workflow.status === "active" ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => setSelectedWorkflow(workflow)}
+                      className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+                      title="Modifier"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm("Êtes-vous sûr de vouloir supprimer ce workflow ?")) {
+                          setWorkflows(workflows.filter((w) => w.id !== workflow.id))
+                        }
+                      }}
+                      className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
+
+        {workflows.length === 0 && (
+          <div className="text-center py-12">
+            <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun workflow configuré</h3>
+            <p className="text-gray-600 mb-4">Créez votre premier workflow pour automatiser vos processus</p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Créer un workflow
+            </button>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </>
   )
 }
